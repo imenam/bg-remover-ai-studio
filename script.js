@@ -88,7 +88,11 @@ function loadImageFromBlob(blob){
 function blobToFile(blob,name){ return new File([blob],name,{type:blob.type}); }
 
 // ─── STEP 1: Upload ───────────────────────────────────────────────────────────
-browseLink.addEventListener('click',()=>fileInput.click());
+// FIX: Prevent event bubbling on the browse link
+browseLink.addEventListener('click', (e) => {
+  e.stopPropagation();
+  fileInput.click();
+});
 uploadZone.addEventListener('click',()=>fileInput.click());
 uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('dragover')});
 uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragover'));
@@ -97,6 +101,16 @@ fileInput.addEventListener('change',e=>handleUpload(e.target.files[0]));
 
 function handleUpload(file){
   if(!file||!file.type.match(/image\/(jpeg|png|webp)/)) return;
+  
+  // FIX: Clear input value so the same file can be uploaded again if needed
+  if(fileInput) fileInput.value = "";
+
+  // FIX: Reset previous state to ensure a clean slate
+  cropSel = null; 
+  croppedBlob = null;
+  removedBlob = null;
+  removedImg = null;
+
   originalFile=file;
   fileNameDisplay.textContent=file.name;
   const reader=new FileReader();
@@ -125,7 +139,6 @@ function initCropCanvas(img) {
   drawCropScene();
 }
 
-// Render the crop box, dimming, and handles on the canvas directly
 function drawCropScene() {
   if (!cropImg) return;
   cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
@@ -135,7 +148,6 @@ function drawCropScene() {
 
   const scale = cropCanvas.width / cropCanvas.clientWidth;
 
-  // Dim the outside area
   cropCtx.save();
   cropCtx.fillStyle = 'rgba(0,0,0,0.5)';
   cropCtx.beginPath();
@@ -144,22 +156,19 @@ function drawCropScene() {
   cropCtx.fill('evenodd');
   cropCtx.restore();
 
-  // Draw crop border
   cropCtx.strokeStyle = '#c8f542';
   cropCtx.lineWidth = Math.max(1, 2 * scale);
   cropCtx.strokeRect(cropSel.x, cropSel.y, cropSel.w, cropSel.h);
 
-  // Draw handles
   const handles = getHandlePositions(cropSel);
   cropCtx.fillStyle = '#c8f542';
-  const hSize = 12 * scale; // Keep visual size consistent
+  const hSize = 12 * scale;
   for (let key in handles) {
     let pos = handles[key];
     cropCtx.fillRect(pos.x - hSize / 2, pos.y - hSize / 2, hSize, hSize);
   }
 }
 
-// Map client coordinates directly to natural image pixels
 function getCanvasPos(e) {
   const r = cropCanvas.getBoundingClientRect();
   const scaleX = cropCanvas.width / r.width;
@@ -182,7 +191,7 @@ function getHandleAt(px, py, sel) {
   if (!sel) return null;
   const handles = getHandlePositions(sel);
   const scale = cropCanvas.width / cropCanvas.clientWidth;
-  const threshold = 14 * scale; // Generous hit area scaled to CSS size
+  const threshold = 14 * scale;
   for (let [key, pos] of Object.entries(handles)) {
     if (distToPoint(px, py, pos.x, pos.y) <= threshold) return key;
   }
@@ -196,7 +205,6 @@ function isInsideRect(px, py, sel) {
          py >= sel.y + margin && py <= sel.y + sel.h - margin;
 }
 
-// -- Pointer Events --
 cropCanvas.addEventListener('pointerdown', startDrag);
 cropCanvas.addEventListener('pointermove', onDrag);
 cropCanvas.addEventListener('pointerup', endDrag);
@@ -245,7 +253,6 @@ function onDrag(e) {
   if (!cropImg) return;
   const pos = getCanvasPos(e);
 
-  // Dynamic Hover Cursors
   if (cropMode === 'idle') {
     const handle = getHandleAt(pos.x, pos.y, cropSel);
     if (handle) {
@@ -364,20 +371,17 @@ function endDrag(e) {
   }
 }
 
-// Field mapping 
 function updateCropFieldsFromCss() {
   if (!cropSel) {
     cropX.value = ''; cropY.value = ''; cropW.value = ''; cropH.value = '';
     return;
   }
-  // Data is now natively mapped to image sizes!
   cropX.value = Math.round(cropSel.x);
   cropY.value = Math.round(cropSel.y);
   cropW.value = Math.round(cropSel.w);
   cropH.value = Math.round(cropSel.h);
 }
 
-// Manual input map
 [cropX, cropY, cropW, cropH].forEach(input => {
   input.addEventListener('input', () => {
     const x = parseFloat(cropX.value) || 0;
@@ -396,7 +400,6 @@ function updateCropFieldsFromCss() {
   });
 });
 
-// Aspect ratio chips
 document.querySelectorAll('.ratio-chip').forEach(c => {
   c.addEventListener('click', () => {
     document.querySelectorAll('.ratio-chip').forEach(x => x.classList.remove('active'));
@@ -410,7 +413,6 @@ document.querySelectorAll('.ratio-chip').forEach(c => {
   });
 });
 
-// Custom aspect ratio
 applyCustomRatio.addEventListener('click', () => {
   const w = parseFloat(customRatioW.value);
   const h = parseFloat(customRatioH.value);
@@ -422,7 +424,6 @@ applyCustomRatio.addEventListener('click', () => {
   }
 });
 
-// Apply crop
 applyCropBtn.addEventListener('click', () => {
   if (!cropSel || !cropImg) return;
   const x = Math.round(cropSel.x);
@@ -442,7 +443,6 @@ applyCropBtn.addEventListener('click', () => {
   }, 'image/png');
 });
 
-// Reset crop
 resetCropBtn.addEventListener('click', () => {
   if (!originalFile) return;
   const reader = new FileReader();
@@ -454,7 +454,6 @@ resetCropBtn.addEventListener('click', () => {
   reader.readAsDataURL(originalFile);
 });
 
-// Back / Proceed
 backToUploadBtn.addEventListener('click', () => gotoStep(1));
 proceedToRemoveBtn.addEventListener('click', () => {
   if (!croppedBlob) croppedBlob = originalFile;
@@ -546,7 +545,6 @@ function initColorStep(){
   updateGradPreview();
 }
 
-// BG type tabs
 document.querySelectorAll('.bg-type-tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.bg-type-tab').forEach(t=>t.classList.remove('active'));
@@ -558,7 +556,6 @@ document.querySelectorAll('.bg-type-tab').forEach(tab=>{
   });
 });
 
-// Solid color picker
 solidColorPicker.addEventListener('input',e=>{
   solidColor=e.target.value;
   solidColorHex.textContent=solidColor;
@@ -566,7 +563,6 @@ solidColorPicker.addEventListener('input',e=>{
   renderResult();
 });
 
-// Gradient pickers
 gradColor1Input.addEventListener('input',e=>{ gradColor1=e.target.value; updateGradPreview(); renderResult(); });
 gradColor2Input.addEventListener('input',e=>{ gradColor2=e.target.value; updateGradPreview(); renderResult(); });
 
@@ -658,7 +654,6 @@ function downloadFinal(format){
   },mime,0.92);
 }
 
-// Attach download events to cards
 document.querySelectorAll('.dl-card').forEach(card => {
   card.addEventListener('click', () => {
     const format = card.dataset.format;
@@ -666,17 +661,37 @@ document.querySelectorAll('.dl-card').forEach(card => {
   });
 });
 
+// FIX: Fully clear states to fix the 2-3 times upload bug
 function startOver(){
   originalFile=null; croppedBlob=null; removedBlob=null; removedImg=null;
   cropSel=null; cropImg=null;
+  
+  if (fileInput) fileInput.value = '';
+
   const r=document.querySelector('#step3 .btn-row.center:last-child');
   if(r&&r.id!=='removeActionRow') r.remove();
+  
   removeActionRow.style.display='';
   removeBgBtn.disabled=false;
   spinnerWrap.classList.remove('active');
   removedPreviewCanvas.style.display='none';
   removedPlaceholder.style.display='';
   croppedPreview.src='';
+  
+  bgMode = 'solid';
+  solidColor = '#ffffff';
+  if(solidColorPicker) solidColorPicker.value = '#ffffff';
+  if(solidColorHex) solidColorHex.textContent = '#ffffff';
+  
+  document.querySelectorAll('.bg-type-tab').forEach(t=>t.classList.remove('active'));
+  const solidTab = document.getElementById('bgTabSolid');
+  if(solidTab) solidTab.classList.add('active');
+  
+  const solidSec = document.getElementById('solidSection');
+  const gradSec = document.getElementById('gradientSection');
+  if(solidSec) solidSec.style.display='block';
+  if(gradSec) gradSec.style.display='none';
+
   gotoStep(1);
 }
 
