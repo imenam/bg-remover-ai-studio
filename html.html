@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BG Remover — Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">✦ AI Powered</div>
+  <h1>Background <span>Remover</span></h1>
+</div>
+
+<div class="steps-bar" id="stepsBar">
+  <div class="step-item active" id="si-1"><div class="step-num">1</div><div class="step-label">Upload</div></div>
+  <div class="step-connector" id="sc-1"></div>
+  <div class="step-item" id="si-2"><div class="step-num">2</div><div class="step-label">Crop</div></div>
+  <div class="step-connector" id="sc-2"></div>
+  <div class="step-item" id="si-3"><div class="step-num">3</div><div class="step-label">Remove BG</div></div>
+  <div class="step-connector" id="sc-3"></div>
+  <div class="step-item" id="si-4"><div class="step-num">4</div><div class="step-label">Background</div></div>
+  <div class="step-connector" id="sc-4"></div>
+  <div class="step-item" id="si-5"><div class="step-num">5</div><div class="step-label">Download</div></div>
+</div>
+
+<div class="card">
+  <div class="card-inner">
+
+    <div class="step-panel active" id="step1">
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">📁</div>
+        <div class="upload-title">Drop your image here</div>
+        <div class="upload-hint">or <span id="browseLink">browse files</span> — JPG, PNG, WEBP up to 20MB</div>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display:none">
+      </div>
+    </div>
+
+    <div class="step-panel" id="step2">
+      <div class="file-badge" id="fileBadge">📎 <span id="fileNameDisplay">image.png</span></div>
+      <div class="crop-layout">
+        <div>
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="cropCanvas" style="touch-action: none;"></canvas>
+          </div>
+          <div class="size-info" id="cropSizeInfo"></div>
+        </div>
+        <div class="crop-controls">
+          <div>
+            <div class="ctrl-section-title">Crop Region (px)</div>
+            <div class="hint-box" id="cropHintBox">✏️ Drag, move, or resize</div>
+            <div style="margin-top:12px" class="field-grid2">
+              <div class="field-box"><label>X</label><input class="num-input" id="cropX" type="number" placeholder="0" min="0"></div>
+              <div class="field-box"><label>Y</label><input class="num-input" id="cropY" type="number" placeholder="0" min="0"></div>
+              <div class="field-box"><label>Width</label><input class="num-input" id="cropW" type="number" placeholder="–" min="1"></div>
+              <div class="field-box"><label>Height</label><input class="num-input" id="cropH" type="number" placeholder="–" min="1"></div>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-section-title">Aspect Ratio</div>
+            <div class="ratio-chips">
+              <button class="ratio-chip" data-ratio="free">Free</button>
+              <button class="ratio-chip" data-ratio="1:1">1:1</button>
+              <button class="ratio-chip" data-ratio="4:3">4:3</button>
+              <button class="ratio-chip" data-ratio="16:9">16:9</button>
+              <button class="ratio-chip" data-ratio="3:4">3:4</button>
+              <button class="ratio-chip" data-ratio="9:16">9:16</button>
+            </div>
+            <div class="custom-ratio-row">
+              <input type="number" id="customRatioW" class="custom-ratio-input" placeholder="W" min="1" value="2">
+              <span style="color:var(--muted)">:</span>
+              <input type="number" id="customRatioH" class="custom-ratio-input" placeholder="H" min="1" value="1">
+              <button class="custom-ratio-btn" id="applyCustomRatio">Set</button>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="applyCropBtn" disabled>✓ Apply Crop</button>
+            <button class="btn btn-ghost" id="resetCropBtn">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:28px">
+        <button class="btn btn-secondary" id="backToUploadBtn">← Back</button>
+        <button class="btn btn-primary" id="proceedToRemoveBtn">Remove Background →</button>
+      </div>
+    </div>
+
+    <div class="step-panel" id="step3">
+      <div class="process-preview">
+        <div class="preview-box">
+          <div class="preview-label">Cropped Image</div>
+          <img id="croppedPreview" src="" alt="Cropped">
+        </div>
+        <div class="preview-box" id="removedPreviewBox">
+          <div class="preview-label">Result</div>
+          <canvas id="removedPreviewCanvas" style="display:none"></canvas>
+          <div id="removedPlaceholder" style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px">
+            Processing will appear here…
+          </div>
+        </div>
+      </div>
+
+      <div class="spinner-wrap" id="spinnerWrap">
+        <div class="spinner"></div>
+        <div class="spinner-text">Removing background…</div>
+      </div>
+
+      <div class="btn-row center" id="removeActionRow">
+        <button class="btn btn-secondary" id="backToCropBtn">← Back to Crop</button>
+        <button class="btn btn-primary" id="removeBgBtn">⚡ Remove Background</button>
+      </div>
+    </div>
+
+    <div class="step-panel" id="step4">
+      <div class="color-step-layout">
+        <div>
+          <div class="section-title">Preview</div>
+          <div class="result-preview-wrap" id="resultPreviewWrap">
+            <canvas id="resultCanvas"></canvas>
+          </div>
+        </div>
+        <div class="color-panel">
+          <div>
+            <div class="section-title">Background Type</div>
+            <div class="bg-type-tabs">
+              <button class="bg-type-tab active" data-bgtype="solid" id="bgTabSolid">Solid</button>
+              <button class="bg-type-tab" data-bgtype="gradient" id="bgTabGradient">Gradient</button>
+              <button class="bg-type-tab" data-bgtype="none" id="bgTabNone">None</button>
+            </div>
+          </div>
+
+          <div id="solidSection">
+            <div class="section-title">Presets</div>
+            <div class="color-row" id="swatchRow"></div>
+            <div class="divider"></div>
+            <div class="section-title">Custom</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="custom-picker-wrap">
+                <input type="color" id="solidColorPicker" value="#ffffff">
+              </div>
+              <span id="solidColorHex" style="font-size:.82rem;color:var(--muted)">#ffffff</span>
+            </div>
+          </div>
+
+          <div id="gradientSection" style="display:none">
+            <div class="section-title">Gradient Colors</div>
+            <div class="gradient-row">
+              <div class="color-well" title="Color 1">
+                <input type="color" id="gradColor1" value="#c8f542">
+              </div>
+              <div class="gradient-preview" id="gradPreview"></div>
+              <div class="color-well" title="Color 2">
+                <input type="color" id="gradColor2" value="#6ee7b7">
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <div class="section-title">Direction</div>
+              <div class="ratio-chips" id="gradDirChips">
+                <button class="ratio-chip active" data-deg="135">↘ 135°</button>
+                <button class="ratio-chip" data-deg="90">↓ 90°</button>
+                <button class="ratio-chip" data-deg="45">↗ 45°</button>
+                <button class="ratio-chip" data-deg="0">→ 0°</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:24px">
+        <button class="btn btn-secondary" id="backToRemoveBtn">← Back</button>
+        <button class="btn btn-primary" id="goToDownloadBtn">Save & Download →</button>
+      </div>
+    </div>
+
+    <div class="step-panel" id="step5">
+      <div class="section-title">Your image is ready!</div>
+      <div class="preview-box" style="max-width:360px;margin:0 auto 24px;border-radius:14px">
+        <canvas id="finalPreviewCanvas" style="max-width:100%;max-height:260px;object-fit:contain;display:block"></canvas>
+      </div>
+      <div class="section-title">Download As</div>
+      <div class="download-grid">
+        <div class="dl-card fmt-png" data-format="png">
+          <div class="dl-format">PNG</div>
+          <div class="dl-desc">Transparent background preserved</div>
+        </div>
+        <div class="dl-card fmt-jpg" data-format="jpg">
+          <div class="dl-format">JPG</div>
+          <div class="dl-desc">With chosen background</div>
+        </div>
+        <div class="dl-card fmt-webp" data-format="webp">
+          <div class="dl-format">WEBP</div>
+          <div class="dl-desc">Small file, high quality</div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:24px">
+        <button class="btn btn-secondary" id="backToBgBtn">← Change Background</button>
+        <button class="btn btn-ghost" id="startOverBtn">↺ Start Over</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

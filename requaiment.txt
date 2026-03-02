@@ -1,0 +1,11 @@
+# 1. Install dependencies
+pip install fastapi uvicorn rembg python-multipart
+
+# 2. Start backend
+python main.py
+
+# 3. Start frontend server (new terminal)
+python -m http.server 5500
+
+# 4. Open browser
+# http://127.0.0.1:5500
